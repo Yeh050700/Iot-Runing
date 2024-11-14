@@ -1,0 +1,64 @@
+import java.io.PrintWriter;
+
+float pressure;
+PrintWriter output;
+Table pressureData;
+int numRows;
+
+void setup() {
+  size(800, 600);
+  
+  // 設定 CSV 檔案的儲存路徑和名稱
+  String fileName = "pressure_data.csv";
+  output = createWriter(fileName);
+  
+  // 寫入 CSV 檔案的標題
+  output.println("Time,Pressure (hPa)");
+  
+  // 讀取 CSV 檔案
+  pressureData = loadTable("pressure_data.csv", "header");
+}
+void draw() {
+  background(255);
+  
+  // 繪製當前壓力值
+  pressure = random(900, 1100);
+  fill(0);
+  textSize(32);
+  text("Current Pressure: " + nf(pressure, 1, 2) + " hPa", 50, 50);
+  
+  // 繪製條形圖
+  fill(map(pressure, 900, 1100, 0, 255), 0, 0);
+  rect(50, 100, 100, pressure - 900);
+  
+  // 獲取當前時間
+  String timeStamp = nf(millis() / 1000.0, 1, 2); // 以秒為單位
+  // 將當前時間和壓力數據寫入 CSV 檔案
+  output.println(timeStamp + "," + nf(pressure, 1, 2));
+  output.flush();  // 確保所有數據都寫入
+
+  // 繪製 CSV 數據圖表
+  numRows = pressureData.getRowCount();
+  for (int i = 0; i < numRows; i++) {
+    float csvPressure = pressureData.getFloat(i, "Pressure (hPa)");
+    float x = map(i, 0, numRows, 200, width - 50);
+    float y = map(csvPressure, 900, 1100, height - 50, 100);
+    
+    // 繪製圓點
+    fill(map(csvPressure, 900, 1100, 0, 255), 0, 0);
+    ellipse(x, y, 10, 10);
+    
+    // 繪製壓力值
+    fill(0);
+    text(nf(csvPressure, 1, 2) + " hPa", x + 5, y - 5);
+  }
+  
+  delay(300);
+}
+
+void keyPressed() {
+  // 當按下任意鍵時關閉檔案
+  output.flush();  // 確保所有數據都寫入
+  output.close();  // 關閉檔案
+  exit();          // 退出程式
+}
