@@ -165,28 +165,37 @@ void drawButtons() {
 }
 
 void drawPressureCircles() {
+  float circleSize = 100; // 设置较小的圆形尺寸
+
   if (isRunning) {
+    // 左边圆形：如果压力较高，填充红色，否则填充黑色
     if (isPressureHighLeft) fill(255, 0, 0); else fill(0);
-    ellipse(width / 3, height / 2, 200, 200);
+    ellipse(width / 3, height / 2, circleSize, circleSize);  // 绘制左圆形
 
+    // 右边圆形：如果压力较高，填充绿色，否则填充蓝色
     if (isPressureHighRight) fill(0, 255, 0); else fill(0, 0, 255);
-    ellipse(2 * width / 3, height / 2, 200, 200);
+    ellipse(2 * width / 3, height / 2, circleSize, circleSize);  // 绘制右圆形
 
-    fill(0);
+    // 在左边圆形中间绘制字母 "L"
+    fill(255); // 设置字母的颜色为白色
     textSize(32);
-    text("左脚压力: " + nf(leftPressure, 1, 2), 50, 50);
-    text("右脚压力: " + nf(rightPressure, 1, 2), 50, 100);
+    textAlign(CENTER, CENTER); // 设置文字居中
+    text("L", width / 3, height / 2);  // 在左圆形中央绘制 "L"
+
+    // 在右边圆形中间绘制字母 "R"
+    text("R", 2 * width / 3, height / 2);  // 在右圆形中央绘制 "R"
   } else {
     fill(0);
-    ellipse(width / 3, height / 2, 200, 200);
-    ellipse(2 * width / 3, height / 2, 200, 200);
+    ellipse(width / 3, height / 2, circleSize, circleSize);
+    ellipse(2 * width / 3, height / 2, circleSize, circleSize);
 
     fill(0);
     textSize(32);
-    text("左脚压力: 尚未量测", 50, 50);
-    text("右脚压力: 尚未量测", 50, 100);
+    //text("左脚压力: 尚未量测", 50, 50);
+    //text("右脚压力: 尚未量测", 50, 100);
   }
 }
+
 
 void mousePressed() {
   if (mouseX > 100 && mouseX < 250 && mouseY > 500 && mouseY < 550) {
