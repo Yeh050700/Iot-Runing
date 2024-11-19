@@ -1,0 +1,7 @@
+Package: [[name]]
+Version: [[version]]
+Section: devel
+Priority: extra
+Architecture: all
+Depends: default-jre (>= 1.6), vlc (>= 3.0)
+Maintainer: mark.lee@capricasoftware.co.uk

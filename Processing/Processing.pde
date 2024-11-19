@@ -2,6 +2,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import processing.serial.*;
 import ddf.minim.*;
+import processing.video.*; // 引入视频库
 
 Serial myPort;  // 串口对象
 float leftPressure = 0;  // Left 压力数据（初始化为 0）
@@ -15,8 +16,10 @@ Minim minim;  // Minim 音频库对象
 AudioPlayer bgMusic;  // 背景音乐播放器
 String fileName;  // 动态生成的 CSV 文件名
 
+Movie myMovie; // 视频对象
+
 void setup() {
-  size(800, 600);
+  size(1000, 600); // 增加画布宽度，为视频窗口留出空间
 
   // 动态生成 CSV 文件名
   String timeStamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(Calendar.getInstance().getTime());
@@ -38,6 +41,12 @@ void setup() {
   // 初始化 Minim 并加载音频文件
   minim = new Minim(this);
   bgMusic = minim.loadFile("background_music.mp3"); // 确保音频文件位于 sketch 文件夹中
+
+  // 初始化视频对象
+  myMovie = new Movie(this, "sample_video.mp4"); // 替换为你的视频文件路径
+  myMovie.loop(); // 设置视频循环播放
+  myMovie.volume(0); // 静音处理，避免与背景音乐冲突
+  myMovie.pause(); // 程序开始时暂停视频
 }
 
 void draw() {
@@ -75,6 +84,11 @@ void draw() {
         saveTable(pressureData, fileName);
       }
     }
+  }
+
+  // 如果正在运行，显示视频
+  if (isRunning) {
+    image(myMovie, 800, 50, 180, 120); // 在画布右侧显示视频
   }
 }
 
@@ -124,12 +138,18 @@ void drawPressureCircles() {
   }
 }
 
+void movieEvent(Movie m) {
+  m.read(); // 必须调用以更新视频帧
+}
+
 void mousePressed() {
   // 检查是否点击了“开始”按钮
   if (mouseX > 100 && mouseX < 250 && mouseY > 500 && mouseY < 550) {
     isRunning = true;
     println("Started");
     if (!bgMusic.isPlaying()) bgMusic.loop(); // 播放背景音乐
+    if (myMovie.time() == myMovie.duration()) myMovie.jump(0); // 如果视频播放完毕，重新开始
+    myMovie.play(); // 开始播放视频
   }
 
   // 检查是否点击了“结束”按钮
@@ -137,6 +157,7 @@ void mousePressed() {
     isRunning = false;
     println("Stopped");
     if (bgMusic.isPlaying()) bgMusic.pause(); // 停止背景音乐
+    myMovie.pause(); // 暂停视频
   }
 }
 
@@ -144,5 +165,6 @@ void mousePressed() {
 void stop() {
   bgMusic.close();
   minim.stop();
+  myMovie.stop(); // 停止视频播放
   super.stop();
 }
