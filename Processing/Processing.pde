@@ -1,6 +1,7 @@
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import processing.serial.*;
+import ddf.minim.*;
 
 Serial myPort;  // 串口对象
 float leftPressure = 0;  // Left 压力数据（初始化为 0）
@@ -11,6 +12,9 @@ String fileName = "pressure_data.csv";
 boolean isPressureHighLeft = false;
 boolean isPressureHighRight = false;
 boolean isRunning = false;  // 是否正在运行
+
+Minim minim;  // Minim 音频库对象
+AudioPlayer bgMusic;  // 背景音乐播放器
 
 void setup() {
   size(800, 600);
@@ -36,6 +40,10 @@ void setup() {
   } else {
     println("No serial ports available.");
   }
+
+  // 初始化 Minim 并加载音频文件
+  minim = new Minim(this);
+  bgMusic = minim.loadFile("background_music.mp3"); // 确保音频文件位于 sketch 文件夹中
 }
 
 void draw() {
@@ -116,8 +124,8 @@ void drawPressureCircles() {
     // 显示尚未量测的提示
     fill(0);
     textSize(32);
-    text("Left Pressure: Waiting", 50, 50);
-    text("Right Pressure: Waiting", 50, 100);
+    text("Left Pressure: 尚未量測", 50, 50);
+    text("Right Pressure: 尚未量測", 50, 100);
   }
 }
 
@@ -126,12 +134,14 @@ void mousePressed() {
   if (mouseX > 100 && mouseX < 250 && mouseY > 500 && mouseY < 550) {
     isRunning = true;
     println("Started");
+    if (!bgMusic.isPlaying()) bgMusic.loop(); // 播放背景音乐
   }
 
   // 检查是否点击了“结束”按钮
   if (mouseX > 300 && mouseX < 450 && mouseY > 500 && mouseY < 550) {
     isRunning = false;
     println("Stopped");
+    if (bgMusic.isPlaying()) bgMusic.pause(); // 停止背景音乐
   }
 }
 
@@ -143,4 +153,11 @@ boolean hasColumn(Table table, String columnName) {
     }
   }
   return false;
+}
+
+// 确保程序关闭时释放音频资源
+void stop() {
+  bgMusic.close();
+  minim.stop();
+  super.stop();
 }
