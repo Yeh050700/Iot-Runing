@@ -7,32 +7,26 @@ Serial myPort;  // 串口对象
 float leftPressure = 0;  // Left 压力数据（初始化为 0）
 float rightPressure = 0;  // Right 压力数据（初始化为 0）
 Table pressureData;
-int numRows;
-String fileName = "pressure_data.csv";
 boolean isPressureHighLeft = false;
 boolean isPressureHighRight = false;
 boolean isRunning = false;  // 是否正在运行
 
 Minim minim;  // Minim 音频库对象
 AudioPlayer bgMusic;  // 背景音乐播放器
+String fileName;  // 动态生成的 CSV 文件名
 
 void setup() {
   size(800, 600);
 
-  // 初始化或读取现有的 CSV 文件
-  pressureData = loadTable(fileName, "header");
-  if (pressureData == null || !hasColumn(pressureData, "Left") || !hasColumn(pressureData, "Right")) {
-    println("CSV file not found, creating a new one.");
-    pressureData = new Table();
-    pressureData.addColumn("Time");
-    pressureData.addColumn("Left");
-    pressureData.addColumn("Right");
-  } else {
-    println("CSV file loaded successfully.");
-  }
+  // 动态生成 CSV 文件名
+  String timeStamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(Calendar.getInstance().getTime());
+  fileName = "pressure_data_" + timeStamp + ".csv";
 
-  numRows = pressureData.getRowCount();
-  println("Number of rows in CSV: " + numRows);
+  // 创建新的 Table 并添加标题
+  pressureData = new Table();
+  pressureData.addColumn("Time");
+  pressureData.addColumn("Left");
+  pressureData.addColumn("Right");
 
   if (Serial.list().length > 0) {
     String portName = Serial.list()[0];
@@ -71,12 +65,13 @@ void draw() {
         isPressureHighRight = rightPressure > 1000;
 
         // 保存数据到 CSV 文件
-        String timeStamp = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(Calendar.getInstance().getTime());
+        String currentTime = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(Calendar.getInstance().getTime());
         TableRow newRow = pressureData.addRow();
-        newRow.setString("Time", timeStamp);
+        newRow.setString("Time", currentTime);
         newRow.setFloat("Left", leftPressure);
         newRow.setFloat("Right", rightPressure);
 
+        // 保存到动态生成的文件中
         saveTable(pressureData, fileName);
       }
     }
@@ -143,16 +138,6 @@ void mousePressed() {
     println("Stopped");
     if (bgMusic.isPlaying()) bgMusic.pause(); // 停止背景音乐
   }
-}
-
-boolean hasColumn(Table table, String columnName) {
-  String[] columns = table.getColumnTitles();
-  for (String col : columns) {
-    if (col.equals(columnName)) {
-      return true;
-    }
-  }
-  return false;
 }
 
 // 确保程序关闭时释放音频资源
