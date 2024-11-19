@@ -2,7 +2,6 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import processing.serial.*;
 import ddf.minim.*;
-import processing.video.*; // 引入视频库
 
 Serial myPort;  // 串口对象
 float leftPressure = 0;  // Left 压力数据（初始化为 0）
@@ -16,10 +15,16 @@ Minim minim;  // Minim 音频库对象
 AudioPlayer bgMusic;  // 背景音乐播放器
 String fileName;  // 动态生成的 CSV 文件名
 
-Movie myMovie; // 视频对象
+int leftFootSteps = 0;  // 左脚步伐计数
+int rightFootSteps = 0;  // 右脚步伐计数
+float currentBPM = 0;  // 当前BPM
+boolean isWarning = false;  // 警告状态
+
+PFont font; // 字体对象
+int lastTime = 0;  // 上次更新BPM的时间
 
 void setup() {
-  size(1000, 600); // 增加画布宽度，为视频窗口留出空间
+  size(800, 600);
 
   // 动态生成 CSV 文件名
   String timeStamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(Calendar.getInstance().getTime());
@@ -31,9 +36,11 @@ void setup() {
   pressureData.addColumn("Left");
   pressureData.addColumn("Right");
 
+  // 初始化串口
   if (Serial.list().length > 0) {
     String portName = Serial.list()[0];
     myPort = new Serial(this, portName, 9600);
+    println("Connected to serial port: " + portName);
   } else {
     println("No serial ports available.");
   }
@@ -41,12 +48,22 @@ void setup() {
   // 初始化 Minim 并加载音频文件
   minim = new Minim(this);
   bgMusic = minim.loadFile("background_music.mp3"); // 确保音频文件位于 sketch 文件夹中
+  if (bgMusic == null) {
+    println("Failed to load background_music.mp3. Ensure the file exists in the sketch/data directory.");
+    println("Consider converting the file to WAV format if the issue persists.");
+  } else {
+    println("Audio file loaded successfully.");
+  }
 
-  // 初始化视频对象
-  myMovie = new Movie(this, "sample_video.mp4"); // 替换为你的视频文件路径
-  myMovie.loop(); // 设置视频循环播放
-  myMovie.volume(0); // 静音处理，避免与背景音乐冲突
-  myMovie.pause(); // 程序开始时暂停视频
+  // 加载支持中文的字体
+  try {
+    font = createFont("Arial Unicode MS", 32);
+  } catch (Exception e) {
+    println("Arial Unicode MS is not available. Switching to a default font.");
+    String[] availableFonts = PFont.list();
+    font = createFont(availableFonts[0], 32); // 使用第一个可用字体
+  }
+  textFont(font);
 }
 
 void draw() {
@@ -73,6 +90,21 @@ void draw() {
         isPressureHighLeft = leftPressure > 1000;
         isPressureHighRight = rightPressure > 1000;
 
+        // 计算步伐
+        if (isPressureHighLeft) leftFootSteps++;
+        if (isPressureHighRight) rightFootSteps++;
+
+        // 每1000毫秒（1秒）更新BPM
+        if (millis() - lastTime >= 1000) {
+          currentBPM = (leftFootSteps + rightFootSteps) * 30; // 每分钟步伐数
+          leftFootSteps = 0;  // 重置步伐计数
+          rightFootSteps = 0; // 重置步伐计数
+          lastTime = millis(); // 更新上次更新时间
+          
+          // 检查是否在180 BPM范围内
+          isWarning = (currentBPM < 170 || currentBPM > 190);
+        }
+
         // 保存数据到 CSV 文件
         String currentTime = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(Calendar.getInstance().getTime());
         TableRow newRow = pressureData.addRow();
@@ -86,9 +118,16 @@ void draw() {
     }
   }
 
-  // 如果正在运行，显示视频
-  if (isRunning) {
-    image(myMovie, 800, 50, 180, 120); // 在画布右侧显示视频
+  // 显示当前BPM
+  fill(0);
+  textSize(32);
+  text("当前 BPM: " + nf(currentBPM, 1, 2), 50, 150);
+  
+  // 显示警告信息
+  if (isWarning) {
+    fill(255, 0, 0);
+    textSize(32);
+    text("警告: 频率不在180 BPM范围内!", 50, 200);
   }
 }
 
@@ -98,73 +137,56 @@ void drawButtons() {
   rect(100, 500, 150, 50);
   fill(255);
   textSize(20);
-  text("Start", 135, 535);
+  text("开始", 135, 535);
 
   // Stop 按钮
   fill(255, 0, 0);
   rect(300, 500, 150, 50);
   fill(255);
   textSize(20);
-  text("Stop", 345, 535);
+  text("停止", 345, 535);
 }
 
 void drawPressureCircles() {
-  // 如果正在运行，显示实时数据，否则显示默认状态
   if (isRunning) {
-    // 左侧压力圆
     if (isPressureHighLeft) fill(255, 0, 0); else fill(0);
     ellipse(width / 3, height / 2, 200, 200);
 
-    // 右侧压力圆
     if (isPressureHighRight) fill(0, 255, 0); else fill(0, 0, 255);
     ellipse(2 * width / 3, height / 2, 200, 200);
 
-    // 显示压力值
     fill(0);
     textSize(32);
-    text("Left Pressure: " + nf(leftPressure, 1, 2), 50, 50);
-    text("Right Pressure: " + nf(rightPressure, 1, 2), 50, 100);
+    text("左脚压力: " + nf(leftPressure, 1, 2), 50, 50);
+    text("右脚压力: " + nf(rightPressure, 1, 2), 50, 100);
   } else {
-    // 停止状态：显示默认值并将圆圈颜色改为黑色
     fill(0);
     ellipse(width / 3, height / 2, 200, 200);
     ellipse(2 * width / 3, height / 2, 200, 200);
 
-    // 显示尚未量测的提示
     fill(0);
     textSize(32);
-    text("Left Pressure: 尚未量測", 50, 50);
-    text("Right Pressure: 尚未量測", 50, 100);
+    text("左脚压力: 尚未量测", 50, 50);
+    text("右脚压力: 尚未量测", 50, 100);
   }
-}
-
-void movieEvent(Movie m) {
-  m.read(); // 必须调用以更新视频帧
 }
 
 void mousePressed() {
-  // 检查是否点击了“开始”按钮
   if (mouseX > 100 && mouseX < 250 && mouseY > 500 && mouseY < 550) {
     isRunning = true;
-    println("Started");
-    if (!bgMusic.isPlaying()) bgMusic.loop(); // 播放背景音乐
-    if (myMovie.time() == myMovie.duration()) myMovie.jump(0); // 如果视频播放完毕，重新开始
-    myMovie.play(); // 开始播放视频
+    println("开始");
+    if (bgMusic != null && !bgMusic.isPlaying()) bgMusic.loop(); // 播放背景音乐
   }
 
-  // 检查是否点击了“结束”按钮
   if (mouseX > 300 && mouseX < 450 && mouseY > 500 && mouseY < 550) {
     isRunning = false;
-    println("Stopped");
-    if (bgMusic.isPlaying()) bgMusic.pause(); // 停止背景音乐
-    myMovie.pause(); // 暂停视频
+    println("停止");
+    if (bgMusic != null && bgMusic.isPlaying()) bgMusic.pause(); // 停止背景音乐
   }
 }
 
-// 确保程序关闭时释放音频资源
 void stop() {
-  bgMusic.close();
+  if (bgMusic != null) bgMusic.close();
   minim.stop();
-  myMovie.stop(); // 停止视频播放
   super.stop();
 }
