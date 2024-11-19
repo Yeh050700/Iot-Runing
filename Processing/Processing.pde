@@ -23,6 +23,10 @@ boolean isWarning = false;  // 警告状态
 PFont font; // 字体对象
 int lastTime = 0;  // 上次更新BPM的时间
 
+PImage[] images = new PImage[10];  // 图片数组，用于轮播
+int currentImageIndex = 0;  // 当前显示的图片索引
+int lastImageChangeTime = 0;  // 上次更换图片的时间
+
 void setup() {
   size(800, 600);
 
@@ -64,11 +68,24 @@ void setup() {
     font = createFont(availableFonts[0], 32); // 使用第一个可用字体
   }
   textFont(font);
+
+  // 加载10张PNG图片
+  for (int i = 0; i < 10; i++) {
+    String imagePath = "image" + (i + 1) + ".png";  // 生成图片文件路径
+    images[i] = loadImage(imagePath);
+  }
 }
 
 void draw() {
   // 每帧都绘制背景和按钮，确保显示内容不会闪烁或被覆盖
-  background(200);
+  if (isRunning && millis() - lastImageChangeTime >= 500) {
+    // 每0.5秒切换图片
+    currentImageIndex = (currentImageIndex + 1) % images.length;
+    lastImageChangeTime = millis();
+  }
+
+  // 绘制背景图片
+  image(images[currentImageIndex], 0, 0, width, height);
 
   // 绘制按钮
   drawButtons();
@@ -100,7 +117,7 @@ void draw() {
           leftFootSteps = 0;  // 重置步伐计数
           rightFootSteps = 0; // 重置步伐计数
           lastTime = millis(); // 更新上次更新时间
-          
+
           // 检查是否在180 BPM范围内
           isWarning = (currentBPM < 170 || currentBPM > 190);
         }
@@ -122,7 +139,7 @@ void draw() {
   fill(0);
   textSize(32);
   text("当前 BPM: " + nf(currentBPM, 1, 2), 50, 150);
-  
+
   // 显示警告信息
   if (isWarning) {
     fill(255, 0, 0);
