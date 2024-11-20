@@ -20,15 +20,16 @@ int rightFootSteps = 0;  // 右脚步伐计数
 float currentBPM = 0;  // 当前BPM
 boolean isWarning = false;  // 警告状态
 
-PFont font; // 字体对象
+PFont fontEnglish; // 英文字体对象
+PFont fontChinese; // 中文字体对象
 int lastTime = 0;  // 上次更新BPM的时间
 
-PImage[] images = new PImage[10];  // 图片数组，用于轮播
+PImage[] images = new PImage[9];  // 图片数组，用于轮播
 int currentImageIndex = 0;  // 当前显示的图片索引
 int lastImageChangeTime = 0;  // 上次更换图片的时间
 
 void setup() {
-  size(800, 600);
+  size(1000, 750);
 
   // 动态生成 CSV 文件名
   String timeStamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(Calendar.getInstance().getTime());
@@ -59,19 +60,20 @@ void setup() {
     println("Audio file loaded successfully.");
   }
 
-  // 加载支持中文的字体
+  // 加载字体
   try {
-    font = createFont("Arial Unicode MS", 32);
+    fontEnglish = createFont("Arial", 32);
+    fontChinese = createFont("Microsoft JhengHei", 32); // 微軟正黑體
   } catch (Exception e) {
-    println("Arial Unicode MS is not available. Switching to a default font.");
+    println("Failed to load specified fonts. Using default font.");
     String[] availableFonts = PFont.list();
-    font = createFont(availableFonts[0], 32); // 使用第一个可用字体
+    fontEnglish = createFont(availableFonts[0], 32); 
+    fontChinese = fontEnglish; 
   }
-  textFont(font);
 
   // 加载10张PNG图片
-  for (int i = 0; i < 10; i++) {
-    String imagePath = "image" + (i + 1) + ".png";  // 生成图片文件路径
+  for (int i = 0; i < 9; i++) {
+    String imagePath = "image" + (i + 1) + ".jpg";  // 生成图片文件路径
     images[i] = loadImage(imagePath);
   }
 }
@@ -136,80 +138,94 @@ void draw() {
   }
 
   // 显示当前BPM
+  textFont(fontChinese);
   fill(0);
-  textSize(32);
-  text("当前 BPM: " + nf(currentBPM, 1, 2), 50, 150);
+  textSize(30);
+  textAlign(LEFT, BASELINE);
+  text("目前 BPM：" + nf(currentBPM, 1, 2), 50, 50);
 
   // 显示警告信息
   if (isWarning) {
     fill(255, 0, 0);
-    textSize(32);
-    text("警告: 频率不在180 BPM范围内!", 50, 200);
+    textSize(30);
+    text("警告：速度不在 180 BPM 範圍內！", 50, 150);
   }
 }
 
 void drawButtons() {
   // Start 按钮
-  fill(0, 255, 0);
-  rect(100, 500, 150, 50);
+  textFont(fontChinese);
+  fill(0, 0, 255);
+  rect(100 + 200, 500 - 200, 150, 50, 20);  // X 轴加 100, Y 轴减 200
   fill(255);
   textSize(20);
-  text("开始", 135, 535);
+  textAlign(CENTER, CENTER);
+  text("開始", 175 + 200, 525 - 200);  // X 轴加 100, Y 轴减 200
 
   // Stop 按钮
   fill(255, 0, 0);
-  rect(300, 500, 150, 50);
+  rect(300 + 250, 500 - 200, 150, 50, 20);  // X 轴加 100, Y 轴减 200
   fill(255);
-  textSize(20);
-  text("停止", 345, 535);
+  text("停止", 375 + 250, 525 - 200);  // X 轴加 100, Y 轴减 200
 }
 
+
 void drawPressureCircles() {
-  float circleSize = 100; // 设置较小的圆形尺寸
+  float circleSize = 100; // 定義圓圈的大小（直徑）
 
+  // 如果程序正在運行
   if (isRunning) {
-    // 左边圆形：如果压力较高，填充红色，否则填充黑色
-    if (isPressureHighLeft) fill(255, 0, 0); else fill(0);
-    ellipse(width / 3, height / 2, circleSize, circleSize);  // 绘制左圆形
+    // 判斷左腳的壓力是否超過閾值
+    if (isPressureHighLeft) 
+      fill(0); // 如果超過，將圓填充為黑色(無)
+    else 
+      fill(255, 165, 0); // 否則填充為橘色(有)
+    // 左圓形位置增加 X 軸 50，Y 軸 300
+    ellipse(width / 3 + 50, height / 2 + 300, circleSize, circleSize);
 
-    // 右边圆形：如果压力较高，填充绿色，否则填充蓝色
-    if (isPressureHighRight) fill(0, 255, 0); else fill(0, 0, 255);
-    ellipse(2 * width / 3, height / 2, circleSize, circleSize);  // 绘制右圆形
+    // 判斷右腳的壓力是否超過閾值
+    if (isPressureHighRight) 
+      fill(0); // 如果超過，將圓填充為黑色(無)
+    else 
+      fill(0, 255, 100); // 否則填充為綠色(有)
+    ellipse(2 * width / 3-50, height / 2+300, circleSize, circleSize); // 繪製右側圓圈
 
-    // 在左边圆形中间绘制字母 "L"
-    fill(255); // 设置字母的颜色为白色
-    textSize(32);
-    textAlign(CENTER, CENTER); // 设置文字居中
-    text("L", width / 3, height / 2);  // 在左圆形中央绘制 "L"
+    // 設定字體填充顏色為白色，用於顯示文字
+    fill(255); 
+    textFont(fontEnglish); // 設置英文字體
+    textSize(32); // 設置文字大小為32像素
+    textAlign(CENTER, CENTER); // 設置文字對齊方式為居中
 
-    // 在右边圆形中间绘制字母 "R"
-    text("R", 2 * width / 3, height / 2);  // 在右圆形中央绘制 "R"
-  } else {
-    fill(0);
-    ellipse(width / 3, height / 2, circleSize, circleSize);
-    ellipse(2 * width / 3, height / 2, circleSize, circleSize);
-
-    fill(0);
-    textSize(32);
-    //text("左脚压力: 尚未量测", 50, 50);
-    //text("右脚压力: 尚未量测", 50, 100);
+    // 左文字位置增加 X 軸 50，Y 軸 300
+    text("L", width / 3 + 50, height / 2 + 300); 
+    // 右文字保持原位置
+    text("R", 2 * width / 3-50, height / 2+300); 
+  } else { 
+    // 如果程序未運行，繪製黑色的圓圈作為默認顯示
+    fill(0); 
+    // 左圓形位置增加 X 軸 50，Y 軸 300
+    ellipse(width / 3 + 50, height / 2 + 300, circleSize, circleSize); 
+    ellipse(2 * width / 3-50, height / 2+300, circleSize, circleSize); // 繪製右側圓圈
   }
 }
 
 
 void mousePressed() {
-  if (mouseX > 100 && mouseX < 250 && mouseY > 500 && mouseY < 550) {
+  // 修改后的开始按钮区域
+  if (mouseX > (100 + 200) && mouseX < (250 + 200) && mouseY > (500 - 200) && mouseY < (550 - 200)) {
     isRunning = true;
-    println("开始");
-    if (bgMusic != null && !bgMusic.isPlaying()) bgMusic.loop(); // 播放背景音乐
+    println("開始");
+    if (bgMusic != null && !bgMusic.isPlaying()) bgMusic.loop();
   }
 
-  if (mouseX > 300 && mouseX < 450 && mouseY > 500 && mouseY < 550) {
+  // 修改后的停止按钮区域
+  if (mouseX > (300 + 250) && mouseX < (450 + 250) && mouseY > (500 - 200) && mouseY < (550 - 200)) {
     isRunning = false;
     println("停止");
-    if (bgMusic != null && bgMusic.isPlaying()) bgMusic.pause(); // 停止背景音乐
+    if (bgMusic != null && bgMusic.isPlaying()) bgMusic.pause();
   }
 }
+
 
 void stop() {
   if (bgMusic != null) bgMusic.close();
