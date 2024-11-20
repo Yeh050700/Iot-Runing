@@ -115,7 +115,7 @@ void draw() {
 
         // 每1000毫秒（1秒）更新BPM
         if (millis() - lastTime >= 1000) {
-          currentBPM = (leftFootSteps + rightFootSteps) * 30; // 每分钟步伐数
+          currentBPM = (leftFootSteps + rightFootSteps) * 15; // 除以2
           leftFootSteps = 0;  // 重置步伐计数
           rightFootSteps = 0; // 重置步伐计数
           lastTime = millis(); // 更新上次更新时间
@@ -151,6 +151,7 @@ void draw() {
     text("警告：速度不在 180 BPM 範圍內！", 50, 150);
   }
 }
+
 
 void drawButtons() {
   // Start 按钮
