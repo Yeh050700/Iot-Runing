@@ -10,27 +10,6 @@ const App = () => {
     const canvasRef = useRef(null); // 绘制追踪结果
 
     useEffect(() => {
-        // Fetch 数据逻辑
-        const fetchData = async () => {
-            try {
-                const response = await fetch('http://192.168.255.1:3001/data');
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const result = await response.json();
-                setData(result.pressure); // 更新压力数据
-            } catch (error) {
-                console.error('Fetch error:', error);
-            }
-        };
-
-        // 每秒获取一次数据
-        const interval = setInterval(fetchData, 1000);
-
-        return () => clearInterval(interval); // 清理定时器
-    }, []);
-
-    useEffect(() => {
         // 初始化 MediaPipe Pose
         if (!videoRef.current || !canvasRef.current) return;
 
@@ -73,7 +52,7 @@ const App = () => {
                     lineWidth: 2,
                 });
 
-                // 筛选腿部关键点数据（例：膝盖、脚踝）
+                // 筛选腿部关键点数据（例：髋关节、膝盖、脚踝）
                 const legLandmarks = [
                     results.poseLandmarks[23], // 左髋
                     results.poseLandmarks[24], // 右髋
@@ -90,7 +69,10 @@ const App = () => {
                     z: landmark.z.toFixed(4),
                 }));
 
-                setPoseData((prevData) => [...prevData, currentData]); // 累积记录
+                setPoseData((prevData) => [
+                    ...prevData,
+                    { pressure: data, landmarks: currentData },
+                ]); // 累积记录，同时保存压力值和关键点数据
             }
         });
 
@@ -107,18 +89,40 @@ const App = () => {
         return () => {
             camera.stop();
         };
+    }, [data]);
+
+    useEffect(() => {
+        // Fetch 数据逻辑
+        const fetchData = async () => {
+            try {
+                const response = await fetch('http://192.168.255.1:3001/data');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const result = await response.json();
+                setData(result.pressure); // 更新压力数据
+            } catch (error) {
+                console.error('Fetch error:', error);
+            }
+        };
+
+        // 每秒获取一次数据
+        const interval = setInterval(fetchData, 1000);
+
+        return () => clearInterval(interval); // 清理定时器
     }, []);
 
     const downloadCSV = () => {
         // 将 poseData 转换为 CSV 格式
-        const headers = ['Frame', 'Keypoint', 'X', 'Y', 'Z'];
+        const headers = ['Frame', 'Pressure', 'Keypoint', 'X', 'Y', 'Z'];
         const rows = poseData.flatMap((frame, frameIndex) =>
-            frame.map((point, pointIndex) => [
-                frameIndex + 1,
-                pointIndex + 1,
-                point.x,
-                point.y,
-                point.z,
+            frame.landmarks.map((point, pointIndex) => [
+                frameIndex + 1, // 帧编号
+                frame.pressure, // 当前帧的压力数据
+                pointIndex + 1, // 关键点编号
+                point.x, // X 坐标
+                point.y, // Y 坐标
+                point.z, // Z 坐标
             ])
         );
 
@@ -132,7 +136,7 @@ const App = () => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'pose_data.csv';
+        link.download = 'pose_and_pressure_data.csv';
         link.click();
     };
 
@@ -149,7 +153,7 @@ const App = () => {
                 height={480}
                 style={{ border: '1px solid black', margin: '20px auto', display: 'block' }}
             ></canvas>
-            <button onClick={downloadCSV}>Download Pose Data</button>
+            <button onClick={downloadCSV}>Download Pose & Pressure Data</button>
         </div>
     );
 };
