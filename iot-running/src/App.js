@@ -6,8 +6,22 @@ import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 const App = () => {
     const [data, setData] = useState(''); // 存储从服务器获取的压力数据
     const [poseData, setPoseData] = useState([]); // 存储腿部关键点的数据
+    const [status, setStatus] = useState('stop'); // 当前状态，默认为 "stop"
+    const [audio] = useState(new Audio('background_music.mp3')); // 播放的音频
     const videoRef = useRef(null); // 捕获视频流
     const canvasRef = useRef(null); // 绘制追踪结果
+
+    // 切换状态并播放/停止音乐
+    const handleStart = () => {
+        setStatus('start'); // 切换状态为 "start"
+        audio.play(); // 播放音乐
+    };
+
+    const handleStop = () => {
+        setStatus('stop'); // 切换状态为 "stop"
+        audio.pause(); // 停止音乐
+        audio.currentTime = 0; // 重置音乐到开始位置
+    };
 
     useEffect(() => {
         // 初始化 MediaPipe Pose
@@ -72,7 +86,7 @@ const App = () => {
                 setPoseData((prevData) => [
                     ...prevData,
                     { pressure: data, landmarks: currentData },
-                ]); // 累积记录，同时保存压力值和关键点数据
+                ]);
             }
         });
 
@@ -99,30 +113,36 @@ const App = () => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
+    
+                // 解析为 JSON
                 const result = await response.json();
+    
+                // 在控制台打印出数据，查看其格式
+                console.log(result);
+    
                 setData(result.pressure); // 更新压力数据
             } catch (error) {
                 console.error('Fetch error:', error);
             }
         };
-
+    
         // 每秒获取一次数据
         const interval = setInterval(fetchData, 1000);
-
+    
         return () => clearInterval(interval); // 清理定时器
     }, []);
+    
 
     const downloadCSV = () => {
-        // 将 poseData 转换为 CSV 格式
         const headers = ['Frame', 'Pressure', 'Keypoint', 'X', 'Y', 'Z'];
         const rows = poseData.flatMap((frame, frameIndex) =>
             frame.landmarks.map((point, pointIndex) => [
-                frameIndex + 1, // 帧编号
-                frame.pressure, // 当前帧的压力数据
-                pointIndex + 1, // 关键点编号
-                point.x, // X 坐标
-                point.y, // Y 坐标
-                point.z, // Z 坐标
+                frameIndex + 1,
+                frame.pressure,
+                pointIndex + 1,
+                point.x,
+                point.y,
+                point.z,
             ])
         );
 
@@ -131,7 +151,6 @@ const App = () => {
                 .map((row) => row.join(','))
                 .join('\n');
 
-        // 创建下载链接
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -144,16 +163,17 @@ const App = () => {
         <div className="App" style={{ textAlign: 'center' }}>
             <h1>Pressure & Pose Tracking</h1>
             <p>Distance: {data}</p>
-            {/* 隐藏的视频组件用于捕获摄像头数据 */}
             <video ref={videoRef} style={{ display: 'none' }}></video>
-            {/* 用于显示追踪结果 */}
             <canvas
                 ref={canvasRef}
                 width={640}
                 height={480}
                 style={{ border: '1px solid black', margin: '20px auto', display: 'block' }}
             ></canvas>
+            <button onClick={handleStart}>Start</button>
+            <button onClick={handleStop}>Stop</button>
             <button onClick={downloadCSV}>Download Pose & Pressure Data</button>
+            <p>Status: {status}</p>
         </div>
     );
 };
