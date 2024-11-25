@@ -1,0 +1,20 @@
+# 使用Node.js作為基礎映像
+FROM node:14
+
+# 設定工作目錄
+WORKDIR /app
+
+# 複製package.json和package-lock.json
+COPY package*.json ./
+
+# 安裝依賴
+RUN npm install
+
+# 複製其餘的應用程式代碼
+COPY . .
+
+# 暴露端口
+EXPOSE 3000
+
+# 啟動React應用
+CMD ["npm", "start"]
